@@ -1,6 +1,6 @@
 import tensorflow as tf
 import logging
-from .vocab import aa2idx_vocab
+from pdp.vocab import aa2idx_vocab
 import numpy as np
 
 # new span

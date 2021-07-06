@@ -1,6 +1,8 @@
 import os
 import tensorflow as tf
 from pdp.file_io import load_fasta
+from glob import glob
+import tqdm
 
 class PretrainDataTFWriter:
     def __init__(self, path):
