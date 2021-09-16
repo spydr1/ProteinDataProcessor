@@ -1,7 +1,7 @@
 from setuptools import find_packages, setup
 
 setup(
-    name="pharmcadd-pdp",
+    name="pdp",
     version="0.0.1",
     author="Minjun Jeon, Byeongcheol JO, Yechan Hong",
     author_email="jmj@pharmcadd.com",
