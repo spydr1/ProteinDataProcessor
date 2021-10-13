@@ -4,10 +4,13 @@ from typing import Sequence, Tuple, List, Text
 
 
 from Bio.PDB.vectors import Vector
-from pdp.vocab import aa_idx_vocab, ss3_idx_vocab, ss8_idx_vocab, ss8_ss3_vocab
+from pdp.utils.vocab import *
+# aa_idx_vocab,idx_aa_vocab, ss3_idx_vocab, ss8_idx_vocab, ss8_ss3_vocab
 
 import tensorflow as tf
 
+
+# todo : 데이터 타입 다시 정해보자.
 # Pretrain
 FastaNameFormat = Text
 FastaSeqFormat = Text
@@ -19,7 +22,6 @@ SS3Format = List[Text]
 SS8Foramt = List[Text]
 CoordsFormat = Sequence[Vector]
 DistFormat = List[Tuple]
-
 
 DataFormat = Tuple[FastaNameFormat, MSAFormat, CoordsFormat]
 
@@ -40,8 +42,7 @@ class AminoAcid(str):
     def get_idx(self):
         return aa_idx(self)
 
-    # todo : except ? , what is proper that when i check the validation ? in __init__ ?, I don't want to waste computation.
-
+    # todo : is it need function? ? , when i check the validation what is proper method? in __init__ ?, I don't want to waste computation.
     def vocab_check(self) -> None:
         for idx, _seq in enumerate(self) :
             assert _seq in aa_idx_vocab, f"\n" \
@@ -86,7 +87,7 @@ class Fasta:
         """
 
         name = self.name.encode('ascii')
-        seq_idx = tf.convert_to_tensor(self.seq.get_idx(), dtype=tf.int32)
+        seq_idx = self.seq.get_idx()
         feature = {
             'fasta': _bytes_feature([name]),
             'seq': _int64_feature(seq_idx),
@@ -167,6 +168,7 @@ class Fulldata:
         """
         get the serialized data.
         """
+        # todo : convert_to_tensor바꿔야함, int64 -> int32 로 바꾸는게 생각보다 시간이 오래걸리는것 같다.? 정확하게는 모르겠고.
         seq_idx = tf.convert_to_tensor(self.seq.get_idx(), dtype=tf.int32)
 
         ss3_idx = tf.convert_to_tensor(self.ss3.get_idx(), dtype=tf.int32)
@@ -209,19 +211,30 @@ def _int64_feature(value):
 	return tf.train.Feature(int64_list=tf.train.Int64List(value=value))
 
 
+# aa
 def aa_idx(seq : AminoAcid) -> List[int]:
     """
     convert the amino acid to index.
     ex ) MAC -> [11,1,3]
     """
-    return [aa_idx_vocab[_seq] for _seq in seq]
+    return [aa_idx_vocab.get(_seq,aa_idx_vocab['<unk>']) for _seq in seq]
 
+def idx_aa(idx : List) -> List:
+    return [idx_aa_vocab[_idx] for _idx in idx]
 
+# ss3
 def ss3_idx(seq : AminoAcid) -> List[int]:
     return [ss3_idx_vocab[_seq] for _seq in seq]
 
+def idx_ss3(idx : List[int]) -> List[str]:
+    return [idx_ss3_vocab[_idx] for _idx in idx]
+
+# ss8
 def ss8_idx(seq : AminoAcid) -> List[int]:
     return [ss8_idx_vocab[_seq] for _seq in seq]
+
+def idx_ss8(idx : List[int]) -> List[str]:
+    return [idx_ss8_vocab[_idx] for _idx in idx]
 
 
 # todo : gap, Is gap is unknown ? length, mask for MLM, exception gap
