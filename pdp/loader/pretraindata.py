@@ -6,6 +6,8 @@ import numpy as np
 # new span
 #
 import random
+
+# todo : data split 에 대해 생각.
 class PretrainDataLoader:
     def __init__(self,
                  files,
@@ -13,9 +15,10 @@ class PretrainDataLoader:
                  ):
         self.files = files
         self.seed = seed
-
+        random.seed(seed)
         random.shuffle(self.files)
-        self._train_idx = int(len(files) * 0.9)
+
+        self._train_idx = round(len(files) * 0.9)
 
         # todo : numpy, tfrecord
 
@@ -33,22 +36,36 @@ class PretrainDataLoader:
                  is_training : bool = False,
                  max_sequence_length : int = 512,
                  num_token_predictions : int = 128,
-                 mask_ratio : float = 0.2,
+                 mask_ratio : float = 0.15,
                  buffer_size : int = 200,
                  batch_size : int = 8,) -> tf.data.TFRecordDataset:
+        """
+
+        :param mode: train or valid
+        :param is_training: true or false, true면 shuffle과 repeat 없음.
+        :param max_sequence_length:  시퀀스의 최대 길이
+        :param num_token_predictions: LML 갯수
+        :param mask_ratio: num_token_predictions 중 몇 퍼센트를 mask 씌울 것인가.
+        :param buffer_size: tfdata를 읽어올때 한번에 몇개를 읽을 것인가.
+        :param batch_size:
+
+        :return: tfdata
+        """
 
         features = {
             'fasta': tf.io.FixedLenFeature([], tf.string),
             'seq': tf.io.RaggedFeature(value_key="seq", dtype=tf.int64),
         }
         if mode == 'train' :
-            train_files = self.files[:self._train_idx]
+            self.target_files = self.files[:self._train_idx]
+            train_files = self.target_files
             logging.info(f"you are using training dataset, list of training file : {train_files}")
             dataset = tf.data.TFRecordDataset(train_files,
                                               num_parallel_reads=tf.data.experimental.AUTOTUNE,
                                               compression_type="GZIP", )
         else :
-            valid_files = self.files[self._train_idx]
+            self.target_files = self.files[self._train_idx:]
+            valid_files = self.target_files
             logging.info(f"you are using validation dataset, list of training file : {valid_files}")
             dataset = tf.data.TFRecordDataset(valid_files,
                                               num_parallel_reads=tf.data.experimental.AUTOTUNE,
@@ -142,11 +159,12 @@ class PretrainDataLoader:
 
         }
 
-        dataset = dataset.map(_parse_function)
+        dataset = dataset.map(_parse_function,
+                              num_parallel_calls =tf.data.experimental.AUTOTUNE )
         dataset = dataset.padded_batch(batch_size,
                                        padded_shapes=padded_shapes,
                                        padding_values=padded_value)
-        dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
+        dataset = dataset.prefetch(buffer_size)
 
         return dataset
 

@@ -13,11 +13,11 @@ from typing import List
 import tqdm
 
 # todo : shuffle, uniref50이 이미 잘 섞여있다면 필요 없을 텐데.
-class PretrainWriter :
+class PretrainDataWriter :
     def __init__(self,
                  filepath : str ,
                  max_sequence_length:int = 1024,
-                 buffer_size:int = 1000000):
+                 buffer_size:int = 100000):
         self.filepath = filepath
         self.max_sequence_length = max_sequence_length
         self.buffer_size = buffer_size
@@ -56,19 +56,35 @@ class PretrainWriter :
                 # test
                 if test_mode and count ==1000 :
                     break
+            else :
+                print(f"index : {idx} {count}", end='\r')
+
+                _fasta = [current_name, current_seq]
+                fasta_list.append(_fasta)
+                count += 1
+
+
+
+
+
 
         return fasta_list
 
-    def to_tfrecord(self, rewrite=False, test_mode=False, seed=12345) -> None:
+    def to_tfrecord(self,
+                    tfrecord_dir ='~/.cache/tfdata/pretrain/',
+                    rewrite=False,
+                    test_mode=False,
+                    seed=12345,
+                    shuffle=True) -> None:
         # todo : 병렬 처리.
+
         if rewrite :
             import shutil
-            _path = '~/.cache/tfdata/pretrain/'
-            _path = os.path.expanduser(_path)
-            shutil.rmtree(_path,ignore_errors=True)
+            tfrecord_dir = os.path.expanduser(tfrecord_dir)
+            shutil.rmtree(tfrecord_dir, ignore_errors=True)
 
 
-        tfrecord_path = f'~/.cache/tfdata/pretrain/0.tfrecord'
+        tfrecord_path = os.path.join(tfrecord_dir, '0.tfrecord')
         tfrecord_path = os.path.expanduser(tfrecord_path)
         dirname = os.path.dirname(tfrecord_path)
         if os.path.exists(tfrecord_path):
@@ -76,8 +92,10 @@ class PretrainWriter :
         os.makedirs(dirname, exist_ok=True)
 
         fasta_list = self._filtering(test_mode=test_mode)
-        random.seed(seed)
-        random.shuffle(fasta_list)
+
+        if shuffle :
+            random.seed(seed)
+            random.shuffle(fasta_list)
 
         record_option = tf.io.TFRecordOptions(compression_type="GZIP")
         tfrecord_writer = tf.io.TFRecordWriter(tfrecord_path, record_option)
@@ -98,6 +116,3 @@ class PretrainWriter :
                 tfrecord_writer = tf.io.TFRecordWriter(tfrecord_path, record_option)
         tfrecord_writer.close()
 
-
-writer = PretrainWriter('/Pharmcadd/uniref50.fasta')
-writer.to_tfrecord(rewrite=True,test_mode=False)

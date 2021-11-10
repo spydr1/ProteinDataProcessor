@@ -12,7 +12,7 @@ class FullDataLoader:
                  is_training=False,
                  max_sequence_length=512,
                  max_mlm_length=100,
-                 mask_ratio=0.2,
+                 mask_ratio=0.15,
                  buffer_size=200,
                  batch_size=8,
                  bins=16,

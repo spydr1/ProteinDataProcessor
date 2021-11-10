@@ -1,9 +1,13 @@
 #from collections import defaultdict
 
+# esm -  ['L', 'A', 'G', 'V', 'S', 'E', 'R', 'T', 'I', 'D',
+#         'P', 'K', 'Q', 'N', 'F', 'Y', 'M', 'H', 'W', 'C',
+#         'X', 'B', 'U', 'Z', 'O', '.', '-']
+# 'x', 'b', 'u', 'z','O','.',-'
 # todo : is gap same unk ?
 _aa_vocab = ['A', 'C', 'D', 'E', 'F', 'G', 'H', 'I','K',
           'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V',
-          'W', 'Y', '-', '<unk>','<pad>', '<cls>' ,'<eos>', '<mask>']
+          'W', 'Y', '<unk>','<pad>', '<cls>' ,'<eos>', '<mask>']
 aa_idx_vocab = {token:idx for idx, token in enumerate(_aa_vocab)}
 
 # todo : what is 'X', 'Z', 'U' symbol ?
