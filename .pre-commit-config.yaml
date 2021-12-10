@@ -1,0 +1,21 @@
+repos:
+  - repo: https://github.com/ambv/black
+    rev: 21.12b0
+    hooks:
+      - id: black
+        language_version: python3.6
+        exclude: doc/|monitoring/|scripts/|tool/|test/
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v1.2.3
+    hooks:
+      - id: flake8
+        exclude: doc/|monitoring/|scripts/|tool/|test/
+#  - repo: local
+#    hooks:
+#      - id: unit test
+#        name: unit test
+#        entry: python3 -m pytest -v test
+#        language: system
+#        exclude: doc/|monitoring/|scripts/|tool/|test/
+#        types: [python]
+
