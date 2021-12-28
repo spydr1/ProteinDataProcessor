@@ -17,15 +17,15 @@ class FullDataLoader:
         seed=12345,
     ):
 
-        # todo : numpy 버전, tensorflow 버전 둘다 만들어 놓아야할까 ?
-
         self.split_level = split_level
         self.cv_partition = cv_partition
         self.seed = seed
 
     def _check_exist(self) -> bool:
-        tfrecord_file = "~/.cache/tfdata/fulldata/"
-        return os.path.exists(tfrecord_file)
+        tfrecord_path = "~/.cache/tfdata/fulldata/"
+        self.tfrecord_path = os.path.expanduser(tfrecord_path)
+
+        return os.path.exists(self.tfrecord_path)
 
     # todo :
     def _download(self):
@@ -42,17 +42,18 @@ class FullDataLoader:
         mode="train",
         is_training: bool = False,
         sequence_length: int = 1024,
-        num_token_predictions: int = 128,
-        mask_ratio: float = 0.15,
         buffer_size: int = 200,
         batch_size: int = 8,
         bins=16,
     ) -> tf.data.TFRecordDataset:
         # tfrecordfile을 찾는 것 + 읽는 것 두개 합쳐져 있는 것 같은데 ?
 
-        # todo : not은 비직관적인거 같고 vs not 쓰면 하나만 써도 되고 ..
         if self._check_exist() is False:
-            raise OSError("file is not exist.")
+            os.makedirs(self.tfrecord_path)
+            raise Exception(
+                "Download is not available. It will be added. Please use esm2tfdata() written in pdp/writer/fulldata.py"
+            )
+            # raise OSError("file is not exist.")
         # else :
         #     pass
         # self._download()

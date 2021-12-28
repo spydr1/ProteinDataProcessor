@@ -62,7 +62,7 @@ class Fulldata:
         # dist & coords is list. so it is need to serialize.
         dist = tf.io.serialize_tensor(self.dist)
         coords = tf.io.serialize_tensor(self.coords)
-
+        # todo : np.tobytes() 확인 해보자 -> 값은 다르던데..
         feature = {
             "seq": _int64_feature(seq_idx),
             "ss3": _int64_feature(ss3_idx),
@@ -94,11 +94,11 @@ def load_fulldata(fulldata_file):
 
     with open(fulldata_file, "rb") as fr:
         user_loaded = pickle.load(fr)
-
         new_fulldata = Fulldata(
             user_loaded["seq"],
             user_loaded["coords"],
             user_loaded["dist"],
             user_loaded["ss8"],
         )
+
     return new_fulldata

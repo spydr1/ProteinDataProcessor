@@ -4,7 +4,8 @@ import tensorflow as tf
 import tqdm
 
 from esm.data import ESMStructuralSplitDataset
-from pdp.data import Fulldata, SS8
+from pdp.data.feature import SS8
+from pdp.data.fulldata import Fulldata
 
 
 class FulldataWriter:

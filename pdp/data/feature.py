@@ -172,7 +172,12 @@ class SS8(object):
         """
         convert the 8-class secondary structure to 3-class secondary structure.
         """
-        return SS3("".join([vocab.ss8_ss3_vocab[_seq] for _seq in self.ss8]))
+        _unknown_token = vocab.ss8_ss3_vocab["X"]
+        return SS3(
+            "".join(
+                [vocab.ss8_ss3_vocab.get(_seq, _unknown_token) for _seq in self.ss8]
+            )
+        )
 
     def get_idx(self):
         """
@@ -196,7 +201,8 @@ class SS8(object):
         convert the 8-class secondary structure to index.
         If it has unknown secondary structure, it is replaced to <unk> token.
         """
-        return [vocab.ss8_idx_vocab[_ss8] for _ss8 in ss8]
+        _unknown_token = vocab.ss8_idx_vocab["X"]
+        return [vocab.ss8_idx_vocab.get(_ss8, _unknown_token) for _ss8 in ss8]
 
     def _idx_ss8(self, idx: List[int]) -> List[str]:
         """
