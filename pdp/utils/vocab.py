@@ -63,6 +63,7 @@ aa_dict = {
     "HSD": "H",
     "UNK": "X",
 }
+
 aa_dict_inv = {v: k for k, v in aa_dict.items()}
 
 

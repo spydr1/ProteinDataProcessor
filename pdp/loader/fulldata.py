@@ -36,7 +36,7 @@ class FullDataLoader:
 
     # todo : tfx, data versioning -> ML OPS에 대한 생각.
     # todo : tfdata로 return되는게 편한걸까 ?
-    def load_tfrecord(
+    def __call__(
         self,
         file=None,
         mode="train",

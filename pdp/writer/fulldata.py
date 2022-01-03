@@ -8,6 +8,7 @@ from pdp.data.feature import SS8
 from pdp.data.fulldata import Fulldata
 
 
+# Fulldata를 받게끔 ..?
 class FulldataWriter:
     def __init__(
         self,
@@ -35,6 +36,7 @@ class FulldataWriter:
         self.data = esm_structural_train
 
     # 이미 전처리 되어있어서 shuffle 필요 없을 것 같다.
+    # data -> list
     def to_tfrecord(
         self,
         tfrecord_dir="~/.cache/tfdata/fulldata/",
@@ -57,6 +59,7 @@ class FulldataWriter:
 
         # todo : 이것도 병렬처리를 해놓는게 좋으려나?
         # todo : dihedral angle 추가할지 말지 (다음 버전에 추가해도 될것 같기도? - 일단은 필요없음)
+        # 이 부분이 사라지고 fulldata로 제공되어야한다.
         for data in tqdm.tqdm(self.data):
             my_fulldata = Fulldata(
                 seq=data["seq"],
