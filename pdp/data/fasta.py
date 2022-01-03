@@ -8,20 +8,19 @@ class Fasta:
     # todo : 정의, 구성.
 
     """
-    desc:
+    Fasta data
     """
 
     def __init__(self, name: str, seq: AminoAcid):
         self.name = name
-        self.seq = seq if isinstance(seq, AminoAcid) else AminoAcid(seq)
-        self._idx = None
+        self.aa = seq if isinstance(seq, AminoAcid) else AminoAcid(seq)
 
     def __repr__(self):
-        return f"({self.name}, {self.seq})"
+        return f"({self.name}, {self.aa})"
 
     def __eq__(self, other):
         if isinstance(other, Fasta):
-            if other.name == self.name and other.seq == self.seq:
+            if other.name == self.name and other.aa == self.aa:
                 return True
         return False
 
@@ -31,15 +30,15 @@ class Fasta:
     def get_name(self):
         return self.name
 
-    @property
-    def idx(self):
-        """
-        get the index number of amino acid.
-        """
-
-        if not self._idx:
-            self._idx = self.seq.get_idx()
-        return self._idx
+    # @property
+    # def idx(self):
+    #     """
+    #     get the index number of amino acid.
+    #     """
+    #
+    #     if not self._idx:
+    #         self._idx = self.seq.get_idx()
+    #     return self._idx
 
     def serialize(self) -> bytes:
         """
@@ -47,10 +46,10 @@ class Fasta:
         """
 
         name = self.name.encode("ascii")
-        seq_idx = self.seq.get_idx()
+        idx = self.aa.idx
         feature = {
             "fasta": _bytes_feature([name]),
-            "seq": _int64_feature(seq_idx),
+            "seq": _int64_feature(idx),
         }
         # Create a Features message using tf.train.Example.
         example_proto = tf.train.Example(features=tf.train.Features(feature=feature))
@@ -62,7 +61,7 @@ class Fasta:
         """
         with open(fasta_file, mode="w") as file_obj:
             file_obj.write(f">{self.name}\n")
-            file_obj.write(self.seq)
+            file_obj.write(self.aa.seq)
 
 
 def load_fasta(fasta_file):

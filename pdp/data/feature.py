@@ -13,28 +13,30 @@ import numpy as np
 class AminoAcid(str):
     # todo : 아미노산의 정의. 표현식 3 a. 1-letter  b. 3-letter  c. index
     """
-    desc :
+    Amino acid data
+
+    Attributes:
+        sequence : 1-letter amino acid.
+        idx : one-hot vector of amino acid.
+
     """
 
     def __init__(self, aa):
 
         if isinstance(aa, str):
-            self.sequence = aa
+            self.seq = aa
             # todo : 아미노산은 사실 string 이면 되는데 .. 데이터 편의를 위해서 index를 추가 해놓는게 맞을까? 별로 크지 않아서 상관없지만 .. 그래도 낭비는 낭비일지도 ?
-            self._idx = self._aa_idx(aa)
+            self.idx = self._aa_idx(aa)
 
-        elif isinstance(aa, np.ndarray):
-            self.sequence = self._idx_aa(aa)
-            self._idx = aa
+        elif isinstance(aa, np.ndarray) or isinstance(aa, list):
+            self.seq = self._idx_aa(aa)
+            self.idx = aa
 
         else:
             raise ValueError(f"{aa} is not supported type.")
 
     def __str__(self):
-        return self.sequence
-
-    def get_idx(self):
-        return self._idx
+        return self.seq
 
     # todo : init에 포함 시킬지 말지
     def _vocab_check(self, sequence) -> None:
@@ -47,7 +49,7 @@ class AminoAcid(str):
                     f'"{current_seq}" is not existed in vocab. idx number : {i}'
                 )
 
-    def _aa_idx(self, sequence: str) -> List[int]:
+    def _aa_idx(self, seq: str) -> List[int]:
         """
         convert the amino acid to index.
         If it has unknown amino acid, it is replaced to <unk> token.
@@ -56,7 +58,7 @@ class AminoAcid(str):
         index_list = []
         unknown_token = vocab.aa_idx_vocab["<unk>"]
 
-        for current_seq in sequence:
+        for current_seq in seq:
             # todo : unknwon 토큰일때 무언가 기록하거나.. 해야 하지 않을까 ?
             current_idx = vocab.aa_idx_vocab.get(current_seq, unknown_token)
             index_list.append(current_idx)
@@ -82,41 +84,36 @@ class AminoAcid(str):
         return nonlist_seq
 
     def __repr__(self):
-        return self.sequence
+        return self.seq
 
     def __eq__(self, other):
-        return self.sequence == other
+        return self.seq == other
 
 
 class SS3(object):
     # todo : 정의, 표현식 a. letter b. index , fullname = 1-letter 헷갈릴 여지 없으므로 적지 않는다. SS8 관계
-    """ """
+    """
+    3-class secondary structure.
+
+    Attributes:
+        ss3 : 3-class secondary structure. If it has unknown secondary structure, it is replaced to <X> token.
+        idx : one-hot vector of ss3.
+    """
 
     def __init__(self, ss3, vocab_check: bool = False):
         if isinstance(ss3, str):
             self.ss3 = ss3
-            self._idx = self._ss3_idx(ss3)
+            self.idx = self._ss3_idx(ss3)
 
-        elif isinstance(ss3, list):
+        elif isinstance(ss3, np.ndarray) or isinstance(ss3, list):
             self.ss3 = self._idx_ss3(ss3)
-            self._idx = ss3
+            self.idx = ss3
 
         else:
             raise ValueError(f"{ss3} is not supported type.")
 
         if vocab_check:
             self.vocab_check()
-
-    def get_idx(self):
-        """
-        convert the 3-class secondary structure to index.
-        If it has unknown secondary structure, it is replaced to <unk> token.
-        >>> ss3 = "HHHCCC"
-        >>> ss3_idx(ss3)
-        >>> [0, 0, 0, 2, 2, 2]
-        :return:
-        """
-        return self._idx
 
     def vocab_check(self) -> None:
         for i, current_ss3 in enumerate(self.ss3):
@@ -151,16 +148,24 @@ class SS3(object):
 
 
 class SS8(object):
+    """
+    8-class secondary structure.
+
+    Attributes:
+        ss8 : 8-class secondary structure. If it has unknown secondary structure, it is replaced to <X> token.
+        idx : one-hot vector of ss8.
+    """
+
     # todo : 정의, 표현식 a. letter b. index , fullname = 1-letter 헷갈릴 여지 없으므로 적지 않는다. SS3 관계
     def __init__(self, ss8, vocab_check: bool = False):
 
         if isinstance(ss8, str):
             self.ss8 = ss8
-            self._idx = self._ss8_idx(ss8)
+            self.idx = self._ss8_idx(ss8)
 
-        elif isinstance(ss8, tuple):
+        elif isinstance(ss8, np.ndarray) or isinstance(ss8, list):
             self.ss8 = self._idx_ss8(ss8)
-            self._idx = ss8
+            self.idx = ss8
 
         else:
             raise ValueError(f"{ss8} is not supported type.")
@@ -179,13 +184,6 @@ class SS8(object):
             )
         )
 
-    def get_idx(self):
-        """
-        convert the 8-class secondary structure to index.
-        If it has unknown secondary structure, it is replaced to <unk> token.
-        """
-        return self._idx
-
     # todo : raise 문은 예외처리로 동작가능하게끔 .. assert는 내부 정확성을 위해서?  https://google.github.io/styleguide/pyguide.html#244-decision 읽어보자.
 
     def vocab_check(self) -> None:
@@ -198,7 +196,7 @@ class SS8(object):
     # ss8
     def _ss8_idx(self, ss8: str) -> List[int]:
         """
-        convert the 8-class secondary structure to index.
+        convert the 8-class secondary structure to one-hot vector.
         If it has unknown secondary structure, it is replaced to <unk> token.
         """
         _unknown_token = vocab.ss8_idx_vocab["X"]
@@ -206,7 +204,7 @@ class SS8(object):
 
     def _idx_ss8(self, idx: List[int]) -> List[str]:
         """
-        convert the ss8 index to 8-class secondary structure
+        convert the ss8 one-hot vector to 8-class secondary structure
         """
         return "".join([vocab.idx_ss8_vocab[_idx] for _idx in idx])
 

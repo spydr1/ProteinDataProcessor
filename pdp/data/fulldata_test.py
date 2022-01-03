@@ -34,14 +34,14 @@ class TestStringMethods(tf.test.TestCase):
             "ss8": tf.io.RaggedFeature(value_key="ss8", dtype=tf.int64),
         }
         eg = tf.io.parse_single_example(serialized_data, features)
-        self.assertEqual(self.data.seq, AminoAcid(eg["seq"].numpy()))
+        self.assertEqual(self.data.aa, AminoAcid(eg["seq"].numpy()))
 
     def test_export_fulldata(self):
         path = os.path.join(self.get_temp_dir(), "test.fasta")
         self.data.to_dict(path)
 
         loaded_fulldata = load_fulldata(path)
-        self.assertEqual(loaded_fulldata.seq, self.data.seq)
+        self.assertEqual(loaded_fulldata.aa, self.data.aa)
 
 
 if __name__ == "__main__":

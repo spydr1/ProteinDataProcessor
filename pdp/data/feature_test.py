@@ -26,21 +26,21 @@ class TestStringMethods(tf.test.TestCase):
 
     def test_AminoAcid_get_idx(self):
         aa = AminoAcid(self.raw_aa_idx)
-        self.assertEqual(self.raw_aa_idx, aa.get_idx())
+        self.assertEqual(self.raw_aa_idx, aa.idx)
 
     def test_SS3(self):
         self.assertEqual(self.raw_ss3, SS3(self.raw_ss3))
 
     def test_SS3_get_idx(self):
         ss3 = SS3(self.raw_ss3_idx)
-        self.assertEqual(self.raw_ss3_idx, ss3.get_idx())
+        self.assertEqual(self.raw_ss3_idx, ss3.idx)
 
     def test_SS8(self):
         self.assertEqual(self.raw_ss8, SS8(self.raw_ss8))
 
     def test_SS8_get_idx(self):
         ss8 = SS8(self.raw_ss8_idx)
-        self.assertEqual(self.raw_ss8_idx, ss8.get_idx())
+        self.assertEqual(self.raw_ss8_idx, ss8.idx)
 
 
 if __name__ == "__main__":
