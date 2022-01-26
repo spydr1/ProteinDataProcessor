@@ -42,7 +42,6 @@ class TestStringMethods(tf.test.TestCase):
         return dir_FastaFile
 
     def test_TrainDataValidation(self):
-        # load 한것 = input으로 만든 것 비교
 
         dir_correct_fasta_file = self.create_FastaFile()
         tf.print("\n--- example of fasta file ---")
@@ -81,37 +80,6 @@ class TestStringMethods(tf.test.TestCase):
                 tfdata_to_seq,
                 "input sequence is different from ground truth",
             )
-
-        # todo : 1. train data로 들어가는 sequence 2.masking 답으로 바꿔서 fasta file에서와 train data가 같은지.
-
-    # def setUp(self) -> None:
-    #     # tfrecord
-    #     self.tempdir = self.create_tempdir()
-    #     self.tfrecord_file = os.path.join(self.tempdir, 'test.tfrecords')
-    #
-    #     self.test_data = open(os.path.join(self.tempdir,"test.fasta"),mode='w')
-    #     for _bet in ['A','B','C']:
-    #         self.test_data.write(f'2N64_{_bet}')
-    #         self.test_data.write(f'MACACA{_bet}')
-    #     self.test_data.close()
-    #
-    #     with open(self.tempdir,"test.fasta", mode='r') as fileobj:
-    #         print(fileobj.readlines())
-    #
-    #
-    #     self.fasta = Fasta(self.fasta_name,self.seq)
-
-    # def test_LoadFasta(self):
-    #     # when i read fasta_file, it must same to original.
-    #     self.fasta_file = os.path.join(self.tempdir, f"{self.fasta_name}.fasta")
-    #     self.fasta.to_fasta(self.fasta_file)
-    #     self.assertEqual(load_fasta(self.fasta_file), self.fasta,
-    #                      msg=f'loaded fasta : {load_fasta(self.fasta_file)} \n'
-    #                          f'original fasta : {self.fasta}')
-
-
-#
-#
 
 
 def invert_seq(data: tf.Tensor):

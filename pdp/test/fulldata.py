@@ -45,8 +45,10 @@ class TestStringMethods(tf.test.TestCase):
                                      buffer_size=1)
 
         for idx, d in enumerate(train_data):
-            length = list(map(sum,d["input_seq_mask"].numpy()))
-            tfdata_to_seq = list(map(lambda x,l : AminoAcid(x[1:l-1]), d["input_seq"].numpy(), length)) # todo :  element is not Aminoacid.
+            _length = list(map(sum,d["input_seq_mask"].numpy()))
+            _seq = d["input_seq"].numpy()
+
+            tfdata_to_seq = list(map(lambda x,l : AminoAcid(x[1:l-1]), _seq, _length)) # todo : element is not Aminoacid.
         self.assertEqual(AminoAcid(tfdata_to_seq[0]),AminoAcid(self.test_data["seq"]),"input sequence is different from ground truth") # batch size
 
 

@@ -15,6 +15,13 @@ class PretrainDataWriter:
     def __init__(
         self, filepath: str, sequence_length: int = 1024, buffer_size: int = 100000
     ):
+        """
+
+        Args :
+            filepath: directory of "uniref50.fasta" file, you can download from "https://ftp.uniprot.org/pub/databases/uniprot/previous_releases/release-2018_03/uniref/"
+            sequence_length:
+            buffer_size:
+        """
         self.filepath = filepath
         self.sequence_length = sequence_length
         self.buffer_size = buffer_size
@@ -35,7 +42,7 @@ class PretrainDataWriter:
                 # >UniRef50_A0A1E3NP16 ~~
                 # MAB ~~~
 
-                # todo : 이렇게 끝내면 마지막 하나는 안담기네 ..?
+                # todo (complete) : 이렇게 끝내면 마지막 하나는 안담기네 ..?
                 if line[0] == ">":
                     # ex) >UniRef50_K7G060 Titin n=25 Tax=Amniota TaxID=32524 RepID=K7G060_PELSI
                     # <cls>, <eos> 토큰 추가되니까 +2

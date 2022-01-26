@@ -1,28 +1,32 @@
+import numpy as np
+import os
+from glob import glob
 import tensorflow as tf
 import logging
 from pdp.utils.vocab import aa_idx_vocab
-import numpy as np
 
 # new span
 #
 import random
 
 # todo : data split 에 대해 생각. 어떻게 데이터 버전 관리할지
+# todo : tfx, data versioning -> ML OPS에 대한 생각.
+
+
 class PretrainDataLoader:
-    def __init__(self, files, seed: int = 12345):
-        self.files = files
+    def __init__(self, tfrecord_path="~/.cache/tfdata/pretrain/*", seed: int = 12345):
+        tfrecord_path = os.path.expanduser(tfrecord_path)
+        self.files = sorted(glob(tfrecord_path))
         self.seed = seed
         random.seed(seed)
         random.shuffle(self.files)
 
-        self._train_idx = round(len(files) * 0.9)
-
+        self._train_len = round(len(self.files) * 0.9)
         # todo : numpy, tfrecord 버전 추가
 
     def download(self):
         pass
 
-    # todo : tfx, data versioning -> ML OPS에 대한 생각.
     def load(self, span: int) -> tf.data.TFRecordDataset:
         pass
         # 1. pre-processing, parsing.
@@ -38,16 +42,17 @@ class PretrainDataLoader:
         batch_size: int = 8,
     ) -> tf.data.TFRecordDataset:
         """
+        Args :
+            mode: train or valid.
+            is_training: boolean, if it is true, no shuffle, no repeat.
+            max_sequence_length:  maximum length of sequence.
+            num_token_predictions: number of LML
+            mask_ratio: ratio of masking in LML
+            buffer_size: how many data load to RAM.
+            batch_size: batch size
 
-        :param mode: train or valid
-        :param is_training: true or false, true면 shuffle과 repeat 없음.
-        :param max_sequence_length:  시퀀스의 최대 길이
-        :param num_token_predictions: LML 갯수
-        :param mask_ratio: num_token_predictions 중 몇 퍼센트를 mask 씌울 것인가.
-        :param buffer_size: tfdata를 읽어올때 한번에 몇개를 읽을 것인가.
-        :param batch_size:
+        Return : tfdata
 
-        :return: tfdata
         """
 
         features = {
@@ -55,7 +60,7 @@ class PretrainDataLoader:
             "seq": tf.io.RaggedFeature(value_key="seq", dtype=tf.int64),
         }
         if mode == "train":
-            self.target_files = self.files[: self._train_idx]
+            self.target_files = self.files[: self._train_len]
             train_files = self.target_files
             logging.info(
                 f"you are using training dataset, list of training file : {train_files}"
@@ -66,7 +71,7 @@ class PretrainDataLoader:
                 compression_type="GZIP",
             )
         else:
-            self.target_files = self.files[self._train_idx :]
+            self.target_files = self.files[self._train_len :]
             valid_files = self.target_files
             logging.info(
                 f"you are using validation dataset, list of training file : {valid_files}"

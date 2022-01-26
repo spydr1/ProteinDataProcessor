@@ -15,8 +15,6 @@ class FulldataWriter:
         split_level="superfamily",
         cv_partition="4",
         split="train",
-        seed=12345,
-        shuffle=True,
     ):
 
         esm_structural_train = ESMStructuralSplitDataset(
@@ -72,7 +70,9 @@ class FulldataWriter:
                 len(my_fulldata.seq) + 2 < sequence_length
             ):  # todo : sequence_length, 기본값 설정 1024로 ?
                 tfrecord_writer.write(my_fulldata.serialize())
-        tfrecord_writer.close()
+
+        else:
+            tfrecord_writer.close()
 
 
 def esm2tfdata(tfrecord_dir="~/.cache/tfdata/fulldata/", rewrite=False) -> None:
