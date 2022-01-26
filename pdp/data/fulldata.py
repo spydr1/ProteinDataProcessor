@@ -11,14 +11,14 @@ import numpy as np
 
 class Fulldata:
     """
-    for fine-tuning,
+    data for fine-tuning,
 
-    Attributes:
-        aa : 1-letter amino acid.
-        coords : coordination of Ca
-        dist : distance map
-        ss8 : 8-class secondary structure
-        ss3 : 3-class secondary structure
+    Args:
+        aa: 1-letter amino acid.
+        coords: coordination of Ca
+        dist: distance map
+        ss8: 8-class secondary structure
+        ss3: 3-class secondary structure
 
     """
 
@@ -68,6 +68,12 @@ class Fulldata:
         return example_proto.SerializeToString()
 
     def to_dict(self, pickle_file):
+        """
+        export the full-data to npy.
+
+        Args:
+            pickle_file: name of npy file.
+        """
         import pickle
 
         data = {
@@ -81,6 +87,13 @@ class Fulldata:
 
 
 def load_fulldata(fulldata_file):
+    """
+    load full-data from npy file.
+
+    Args:
+        fulldata_file: npy file which recorded the full-data.
+    """
+
     import pickle
 
     with open(fulldata_file, "rb") as fr:

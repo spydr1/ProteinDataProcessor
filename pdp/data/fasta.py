@@ -5,10 +5,12 @@ import os
 
 
 class Fasta:
-    # todo : 정의, 구성.
-
     """
-    Fasta data
+    Fasta data class
+
+    Args:
+        name: name of fasta
+        seq: residue
     """
 
     def __init__(self, name: str, seq: AminoAcid):
@@ -23,22 +25,6 @@ class Fasta:
             if other.name == self.name and other.aa == self.aa:
                 return True
         return False
-
-    def get_seq(self):
-        return self.seq
-
-    def get_name(self):
-        return self.name
-
-    # @property
-    # def idx(self):
-    #     """
-    #     get the index number of amino acid.
-    #     """
-    #
-    #     if not self._idx:
-    #         self._idx = self.seq.get_idx()
-    #     return self._idx
 
     def serialize(self) -> bytes:
         """
@@ -65,6 +51,12 @@ class Fasta:
 
 
 def load_fasta(fasta_file):
+    """
+    get tha fasta.
+
+    Args :
+        fasta_file : file written fasta name and residue.
+    """
     basename = os.path.basename(fasta_file)
     fasta_name = os.path.splitext(basename)[0]
 

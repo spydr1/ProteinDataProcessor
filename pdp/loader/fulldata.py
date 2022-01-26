@@ -10,18 +10,43 @@ import numpy as np
 # todo : max_sequence_length -> seq_length , config와 동일하게
 # todo : loader output 원래 데이터랑 비교할수 있게끔 역변환 함수 추가해야함.
 class FullDataLoader:
+    """
+    dataloader for fine-tuning,
+
+    Attributes:
+        split_level : 1-letter amino acid.
+        coords : coordination of Ca
+        dist : distance map
+        ss8 : 8-class secondary structure
+        ss3 : 3-class secondary structure
+
+    """
+
     def __init__(
         self,
         split_level="superfamily",
-        cv_partition="4",
-        seed=12345,
+        cv_partition: int = 4,
+        seed: int = 12345,
     ):
+        """
+        Args :
+            split_level : string.
+                how to clustering the pdb, it comes from facebook-esm.
+                you can choose one of superfamily, family and fold.
+            cv_partition : int
+                for cross validation, you have to set partition of data.
+            seed : int
+                for data robustness,
+        """
 
         self.split_level = split_level
-        self.cv_partition = cv_partition
+        self.cv_partition = str(cv_partition)
         self.seed = seed
 
     def _check_exist(self) -> bool:
+        """
+        check the existence of tfdata.
+        """
         tfrecord_path = "~/.cache/tfdata/fulldata/"
         self.tfrecord_path = os.path.expanduser(tfrecord_path)
 
@@ -29,6 +54,9 @@ class FullDataLoader:
 
     # todo :
     def _download(self):
+        """
+        downloading the tfdata.
+        """
         import urllib.request
 
         url = "https://drive.google.com/drive/folders/12hwbZwdwUYNaenUqJL7ybyHqsbNP0_C_?usp=sharing"
@@ -46,12 +74,33 @@ class FullDataLoader:
         batch_size: int = 8,
         bins=16,
     ) -> tf.data.TFRecordDataset:
+        """
+
+        Args :
+            file : string.
+                name of tfdata. (default: ~ )
+            mode : string.
+                train or valid.
+                in train, data will be repeating, shuffling.
+                in valid, no repeat and shuffle.
+            is_training : boolean.
+                in true, data will be repeating, shuffling.
+                in false, no repeat and shuffle.
+            sequence_length :
+            buffer_size :
+            batch_size :
+            bins :
+
+        Return :
+            TFRecordDataset
+            It contains the fulldata information.
+        """
         # tfrecordfile을 찾는 것 + 읽는 것 두개 합쳐져 있는 것 같은데 ?
 
         if self._check_exist() is False:
             os.makedirs(self.tfrecord_path)
             raise Exception(
-                "Download is not available. It will be added. Please use esm2tfdata() written in pdp/writer/fulldata.py"
+                "Download is not available. It will be added. Please use esm2tfdata() written in pdp/writer/fulldata_test.py"
             )
             # raise OSError("file is not exist.")
         # else :
@@ -101,6 +150,7 @@ class FullDataLoader:
             logging.info("you are using dataset for evaluation. no repeat, no shuffle")
 
         triangle_mat = np.triu(np.ones([sequence_length, sequence_length]), k=1)
+        # todo : k=3 정도로 ..?
 
         def _parse_function(example_proto):
             with tf.device("cpu"):
