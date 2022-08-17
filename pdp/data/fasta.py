@@ -4,6 +4,7 @@ import tensorflow as tf
 import os
 
 
+# todo : Fasta 를 위한
 class Fasta:
     """
     Fasta data class
@@ -41,15 +42,17 @@ class Fasta:
         example_proto = tf.train.Example(features=tf.train.Features(feature=feature))
         return example_proto.SerializeToString()
 
+    # todo : biopython 을 쓸까 ?
     def to_fasta(self, fasta_file):
         """
         export to fasta file.
         """
         with open(fasta_file, mode="w") as file_obj:
             file_obj.write(f">{self.name}\n")
-            file_obj.write(self.aa.seq)
+            file_obj.write(self.aa)
 
 
+# todo : load 해야할 양식이 어떤것들이 있을까 ?  1. uniref 2. 단일 fasta 이것도 biopython을 쓸까? 단일이건 말건 > 기준으로 다 읽으면 되겠다. 원하는 index를 읽고 싶은 기능은 추가 할까 ?
 def load_fasta(fasta_file):
     """
     get tha fasta.

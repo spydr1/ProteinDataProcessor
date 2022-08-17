@@ -9,6 +9,7 @@ from pdp.data.fulldata import Fulldata
 
 
 # Fulldata를 받게끔 ..?
+# todo : 이것을 fulldata라고 추상적으로 생각할까 esmdata라고 생각할까? 추상적이지 않다면 esm만을 읽어오기 위해 설계된 것은 이상한것 같아.
 class FulldataWriter:
     def __init__(
         self,
@@ -33,13 +34,14 @@ class FulldataWriter:
 
         self.data = esm_structural_train
 
-    # 이미 전처리 되어있어서 shuffle 필요 없을 것 같다.
+    # todo : 이미 전처리 되어있어서 shuffle 필요 없을 것 같다. -> 확인 해보자 이미 섞인 걸까 ?
     # data -> list
     def to_tfrecord(
         self,
         tfrecord_dir="~/.cache/tfdata/fulldata/",
         sequence_length=1024,
     ) -> None:
+
         """
         export to tfreocrd file.
         """
@@ -58,16 +60,17 @@ class FulldataWriter:
         # todo : 이것도 병렬처리를 해놓는게 좋으려나?
         # todo : dihedral angle 추가할지 말지 (다음 버전에 추가해도 될것 같기도? - 일단은 필요없음)
         # 이 부분이 사라지고 fulldata로 제공되어야한다.
-        for data in tqdm.tqdm(self.data):
+        for i, data in enumerate(tqdm.tqdm(self.data)):
             my_fulldata = Fulldata(
-                seq=data["seq"],
+                name=self.data.names[i],
+                aa=data["seq"],
                 coords=data["coords"],
                 ss8=SS8(data["ssp"]),
                 dist=data["dist"],
             )
             # seq has two additional token, '<cls>' ,'<eos>'
             if (
-                len(my_fulldata.seq) + 2 < sequence_length
+                len(my_fulldata.aa) + 2 < sequence_length
             ):  # todo : sequence_length, 기본값 설정 1024로 ?
                 tfrecord_writer.write(my_fulldata.serialize())
 
@@ -92,3 +95,7 @@ def esm2tfdata(tfrecord_dir="~/.cache/tfdata/fulldata/", rewrite=False) -> None:
                 split_level=split_level, cv_partition=cv_partition, split="valid"
             )
             writer.to_tfrecord(tfrecord_dir=tfrecord_dir)
+
+
+if __name__ == "__main__":
+    esm2tfdata(rewrite=True)

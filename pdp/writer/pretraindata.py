@@ -11,6 +11,7 @@ from typing import List
 import tqdm
 
 # todo : shuffle, uniref50이 이미 잘 섞여있다면 필요 없을 텐데.
+# todo : uniref를 읽어오는 것은 분리하자.
 class PretrainDataWriter:
     def __init__(
         self, filepath: str, sequence_length: int = 1024, buffer_size: int = 100000

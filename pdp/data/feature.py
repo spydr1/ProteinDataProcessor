@@ -7,7 +7,7 @@ import numpy as np
 
 
 # todo : 3-letter 추가하기
-class AminoAcid(object):
+class AminoAcid(str):
     # todo : 아미노산의 정의. 표현식 3 a. 1-letter  b. 3-letter  c. index
     """
     Amino acid data
@@ -23,9 +23,15 @@ class AminoAcid(object):
             # todo : aminoacid 클래스 안에 aa, attribute ... 무언가 별로인데 ?
             # todo : 아미노산은 사실 string 이면 되는데 .. 데이터 편의를 위해서 index를 추가 해놓는게 맞을까? 별로 크지 않아서 상관없지만 .. 그래도 낭비는 낭비일지도 ?
             self.idx = self._aa_idx()
-        elif isinstance(aa, np.ndarray) or isinstance(aa, list):
-            self.aa = self._idx_aa(aa)
+
+        elif isinstance(aa, np.ndarray):
+            self.idx = aa.tolist()
+            self.aa = self._idx_aa()
+
+        elif isinstance(aa, list):
             self.idx = aa
+            self.aa = self._idx_aa()
+
         else:
             raise ValueError(
                 f"{aa} is not supported type. It must be string or list format."
@@ -88,7 +94,11 @@ class AminoAcid(object):
         return self.aa
 
     def __eq__(self, other):
-        return self.aa == other.aa
+        return self.aa == other
+
+    def get_3_letter(self):
+        vocabulary = vocab.aa_dict_inv
+        return list([vocabulary[aa] for aa in self.aa])
 
 
 class SS3(object):
@@ -107,8 +117,8 @@ class SS3(object):
             self.ss3 = ss3
             self.idx = self._ss3_idx()
         elif isinstance(ss3, np.ndarray) or isinstance(ss3, list):
-            self.ss3 = self._idx_ss3()
             self.idx = ss3
+            self.ss3 = self._idx_ss3()
         else:
             raise ValueError(f"{ss3} is not supported type.")
 
@@ -150,7 +160,7 @@ class SS3(object):
         return self.ss3
 
     def __eq__(self, other):
-        return self.ss3 == other.ss3
+        return self.ss3 == other
 
 
 class SS8(object):
@@ -186,7 +196,7 @@ class SS8(object):
 
         seq_list = [vocabulary.get(_seq, unknown_token) for _seq in self.ss8]
 
-        return "".join(seq_list)
+        return SS3("".join(seq_list))
 
     # todo : raise 문은 예외처리로 동작가능하게끔 .. assert는 내부 정확성을 위해서?  https://google.github.io/styleguide/pyguide.html#244-decision 읽어보자.
 
@@ -225,4 +235,4 @@ class SS8(object):
         return self.ss8
 
     def __eq__(self, other):
-        return self.ss8 == other.ss8
+        return self.ss8 == other

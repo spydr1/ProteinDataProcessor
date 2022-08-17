@@ -17,6 +17,7 @@ class PretrainDataLoader:
     def __init__(self, tfrecord_path="~/.cache/tfdata/pretrain/*", seed: int = 12345):
         tfrecord_path = os.path.expanduser(tfrecord_path)
         self.files = sorted(glob(tfrecord_path))
+        print(f"training files : {self.files}")
         self.seed = seed
         random.seed(seed)
         random.shuffle(self.files)
@@ -35,7 +36,7 @@ class PretrainDataLoader:
         self,
         mode="train",
         is_training: bool = False,
-        max_sequence_length: int = 512,
+        max_sequence_length: int = 1024,
         num_token_predictions: int = 128,
         mask_ratio: float = 0.15,
         buffer_size: int = 200,

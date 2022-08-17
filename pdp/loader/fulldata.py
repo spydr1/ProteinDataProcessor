@@ -1,9 +1,26 @@
 import os
 
 import tensorflow as tf
+
+# import tensorflow.experimental.numpy as np
 import logging
 from pdp.utils.vocab import aa_idx_vocab
+
 import numpy as np
+
+# @tf.function()
+# def get_random_ij(shape=[2], minval=1):
+#
+#     def _get_random_ij(maxval):
+#         tensor = tf.random.uniform(
+#             shape=[2],
+#             minval=1,
+#             maxval=tf.maximum(length + 1 - patch_size, 1),
+#             # dtype=tf.dtypes.int32,
+#         )
+#         return
+#
+#     return _get_random_ij
 
 # new span
 #
@@ -26,7 +43,6 @@ class FullDataLoader:
         self,
         split_level="superfamily",
         cv_partition: int = 4,
-        seed: int = 12345,
     ):
         """
         Args :
@@ -41,7 +57,6 @@ class FullDataLoader:
 
         self.split_level = split_level
         self.cv_partition = str(cv_partition)
-        self.seed = seed
 
     def _check_exist(self) -> bool:
         """
@@ -69,10 +84,14 @@ class FullDataLoader:
         file=None,
         mode="train",
         is_training: bool = False,
-        sequence_length: int = 1024,
+        max_sequence_length: int = 1024,
         buffer_size: int = 200,
         batch_size: int = 8,
         bins=16,
+        triu_k=6,
+        contact_k=4,
+        seed=12345,
+        patch_size=256,
     ) -> tf.data.TFRecordDataset:
         """
 
@@ -86,7 +105,7 @@ class FullDataLoader:
             is_training : boolean.
                 in true, data will be repeating, shuffling.
                 in false, no repeat and shuffle.
-            sequence_length :
+            max_sequence_length :
             buffer_size :
             batch_size :
             bins :
@@ -130,6 +149,7 @@ class FullDataLoader:
             tfrecord_files = file
 
         features = {
+            "fasta": tf.io.FixedLenFeature([], tf.string),
             "seq": tf.io.RaggedFeature(value_key="seq", dtype=tf.int64),
             "dist": tf.io.FixedLenFeature([], tf.string),
             "coords": tf.io.FixedLenFeature([], tf.string),
@@ -137,92 +157,162 @@ class FullDataLoader:
             "ss_weight": tf.io.RaggedFeature(value_key="ss_weight", dtype=tf.int64),
         }
 
-        dataset = tf.data.TFRecordDataset(
-            tfrecord_files,
-            num_parallel_reads=tf.data.experimental.AUTOTUNE,
-            compression_type="GZIP",
-        )
+        # todo : without tf.deivece func, it's using the gpu memory for loading data.
+        with tf.device("cpu"):
+            dataset = tf.data.TFRecordDataset(
+                tfrecord_files,
+                num_parallel_reads=tf.data.experimental.AUTOTUNE,
+                compression_type="GZIP",
+            )
 
         if is_training is True:
-            dataset = dataset.shuffle(buffer_size, seed=self.seed)
+            dataset = dataset.shuffle(buffer_size, seed=seed)
             dataset = dataset.repeat()
         else:
             logging.info("you are using dataset for evaluation. no repeat, no shuffle")
 
-        triangle_mat = np.triu(np.ones([sequence_length, sequence_length]), k=1)
+        triangle_mat = np.triu(
+            np.ones([max_sequence_length, max_sequence_length]), k=triu_k
+        )
+        triangle_mat = triangle_mat + triangle_mat.T
+
+        contact_mat = np.triu(
+            np.ones([max_sequence_length, max_sequence_length]), k=contact_k
+        )
+        contact_mat = contact_mat + contact_mat.T
+
         # todo : k=3 정도로 ..?
 
         def _parse_function(example_proto):
-            with tf.device("cpu"):
-                eg = tf.io.parse_single_example(example_proto, features)
+            eg = tf.io.parse_single_example(example_proto, features)
+            fasta = eg["fasta"]
+            seq = eg["seq"]
+            # length = len(eg["seq"])
+            length = tf.size(eg["seq"], out_type=tf.dtypes.int32)
+            # todo : pre-train과 똑같은 input을 만들기 위해서 cls, eos 추가.. 넣는게 맞는걸까 ?
+            seq = tf.concat(
+                [[aa_idx_vocab["<cls>"]], seq, [aa_idx_vocab["<eos>"]]], axis=0
+            )
+            seq_mask = tf.ones(length + 2, dtype=tf.int64)
+            # seq_mask = tf.ones(length, dtype=tf.int64)
+            # seq_mask = tf.pad(seq_mask, [[1,1]])
 
-                seq = eg["seq"]
-                length = len(eg["seq"])
-                # todo : pre-train과 똑같은 input을 만들기 위해서 cls, eos 추가.. 넣는게 맞는걸까 ?
-                seq = tf.concat(
-                    [[aa_idx_vocab["<cls>"]], seq, [aa_idx_vocab["<eos>"]]], axis=0
-                )
-                seq_mask = tf.ones(length + 2, dtype=tf.int64)
+            # set the zero weight to <cls> and <eos>
+            ss8 = eg["ss8"]
+            ss8 = tf.pad(ss8, [[1, 1]])
 
-                ss8 = eg["ss8"]
+            ss_weight = eg["ss_weight"]
+            ss_weight = tf.pad(
+                ss_weight, [[1, 1]]
+            )  # equal - ss_weight = tf.concat([[0], ss_weight, [0]], axis=0)
 
-                # cls에 해당하는 부분 0으로 넣고, weight 0으로 만들기.
-                ss8 = tf.concat([[0], ss8], axis=0)
-                ss_weight = eg["ss_weight"]
-                ss_weight = tf.concat([[0], ss_weight], axis=0)
+            # distance
+            dist = tf.io.parse_tensor(eg["dist"], out_type=tf.float32)
+            nan_mask = tf.math.is_nan(dist) is False
 
-                # distance
-                dist = tf.io.parse_tensor(eg["dist"], out_type=tf.float32)
-                nan_mask = tf.cast(tf.logical_not(tf.math.is_nan(dist)), tf.int64)
-                dist = tf.cast(tf.floor(dist), dtype=tf.int64) * nan_mask
-                # cls에 해당하는 부분 0으로 채워넣기.
-                dist = tf.pad(dist, [[1, 0], [1, 0]])
+            if contact_k > 0:
+                diagonal_mask = tf.constant(contact_mat, tf.bool)[:length, :length]
+                dist_mask = nan_mask & diagonal_mask
+            else:
+                dist_mask = nan_mask
 
-                # distance range is 2~18
-                # clipping range is 0~16
-                # todo : distance, nan 값 등장에 대한 분석
-                dist = tf.clip_by_value(dist, 2, bins + 1) - 2
+            # contact_aa
+            # dist_only_long = tf.where(dist_mask, 16 - dist, 0)
+            # contact_pair = tf.gather(eg["seq"], tf.math.top_k(dist_only_long).indices[:,0])
+            # contact_pair = tf.pad(contact_pair,[[1, 1]])
 
-                # distance mask
-                dist_mask = (
-                    tf.constant(triangle_mat, tf.int64)[:length, :length] * nan_mask
-                )
-                # cls에 해당하는 부분 0으로 채워넣기.
-                dist_mask = tf.pad(dist_mask, [[1, 0], [1, 0]])
+            # distance range is 2~18 -> clipping range is 0~16
+            # todo : distance, nan 값 등장에 대한 분석
+            dist = tf.math.multiply_no_nan(
+                dist, tf.cast(dist_mask, tf.float32)
+            )  # todo : nan 을 그냥 곱하면 안되는거 .. 정리하자.
+            dist = tf.floor(dist)
+            dist = tf.clip_by_value(dist - 2, 0, bins - 1)
+
+            # todo : usage of ".numpy()"
+            # distance mask (diagonal)
+            nan_mask = tf.cast(nan_mask, tf.int32)
+            # dist_mask = (
+            #     tf.constant(triangle_mat, tf.int32)[:length, :length] * nan_mask
+            # )
+            # zero padding to <cls> and <eos>
+            dist_mask = tf.pad(dist_mask, [[1, 1], [1, 1]])
+
+            # is it contacted ?
+            # contact = tf.cast(dist<=6,tf.int32)
+            # contact_mask = (
+            #     tf.constant(contact_mat, tf.int32)[:length, :length] * nan_mask
+            # )
+            # contact = tf.reduce_any(tf.equal(contact*contact_mask,1),axis=-1)
+            # contact = tf.pad(contact,[[1, 1]])
+
+            # zero padding to <cls> and <eos>
+            dist = tf.pad(dist, [[1, 1], [1, 1]])
+            # todo : think about "dtype"
+
+            # ij = np.random.randint(1, max(length + 1 - patch_size, 1), size=2)
+            ij = tf.random.uniform(
+                shape=[2],
+                minval=1,
+                maxval=tf.maximum(
+                    length + 2 - patch_size, 2
+                ),  # minval <= val < maxval <- not include maxval
+                dtype=tf.dtypes.int32,
+            )
+            i, j = ij[0], ij[1]
 
             return {
+                "input_fasta": fasta,
                 "input_seq": tf.cast(seq, tf.int32),
                 "input_seq_mask": tf.cast(seq_mask, tf.int32),
                 "input_ss8_target": tf.cast(ss8, tf.int32),
-                "input_ss_weight": tf.cast(ss_weight, tf.int32),
-                "input_dist_target": tf.cast(dist, tf.int32),
-                "input_dist_mask": tf.cast(dist_mask, tf.int32),
+                "input_ss_weight": tf.cast(
+                    ss_weight, tf.int32
+                ),  # ss_weight can apply to contact_weight
+                "input_dist_target": tf.cast(
+                    dist[i : i + patch_size, j : j + patch_size], tf.int32
+                ),
+                "input_dist_mask": tf.cast(
+                    dist_mask[i : i + patch_size, j : j + patch_size], tf.int32
+                ),
+                "input_ij": tf.cast(ij, tf.int32),
+                "input_length": length
+                # "input_contact" : tf.cast(contact, tf.int32),
+                # "input_contact_pair" : tf.cast(contact_pair, tf.int32),
             }
 
         padded_shapes = {
-            "input_seq": [sequence_length],
-            "input_seq_mask": [sequence_length],
-            "input_ss8_target": [sequence_length],
-            "input_ss_weight": [sequence_length],
-            "input_dist_target": [sequence_length, sequence_length],
-            "input_dist_mask": [sequence_length, sequence_length],
+            "input_fasta": [],
+            "input_seq": [max_sequence_length],
+            "input_seq_mask": [max_sequence_length],
+            "input_ss8_target": [max_sequence_length],
+            "input_ss_weight": [max_sequence_length],
+            "input_dist_target": [patch_size, patch_size],
+            "input_dist_mask": [patch_size, patch_size],
+            "input_ij": [2],
+            "input_length": [],
         }
         zero = tf.constant(0, dtype=tf.int32)
         padded_value = {
+            "input_fasta": "",
             "input_seq": zero,
             "input_seq_mask": zero,
             "input_ss8_target": zero,
             "input_ss_weight": zero,
             "input_dist_target": zero,
             "input_dist_mask": zero,
+            "input_ij": zero,
+            "input_length": zero,
         }
 
         dataset = dataset.map(
             _parse_function, num_parallel_calls=tf.data.experimental.AUTOTUNE
         )
+
         dataset = dataset.padded_batch(
             batch_size, padded_shapes=padded_shapes, padding_values=padded_value
         )
+
         dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
 
         return dataset

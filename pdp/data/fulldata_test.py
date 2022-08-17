@@ -22,7 +22,7 @@ class TestStringMethods(tf.test.TestCase):
         dist[1, 1] = 1
         dist[0, 2] = 3
 
-        self.data = Fulldata("MAC", coords, dist, "HHH")
+        self.data = Fulldata("1NAC_A", "MAC", coords, dist, "HHH")
 
     def test_serialize(self):
         serialized_data = self.data.serialize()
@@ -37,10 +37,10 @@ class TestStringMethods(tf.test.TestCase):
         self.assertEqual(self.data.aa, AminoAcid(eg["seq"].numpy()))
 
     def test_export_fulldata(self):
-        path = os.path.join(self.get_temp_dir(), "test.fasta")
+        path = self.get_temp_dir()
         self.data.to_dict(path)
 
-        loaded_fulldata = load_fulldata(path)
+        loaded_fulldata = load_fulldata(os.path.join(path, f"{self.data.name}.npy"))
         self.assertEqual(loaded_fulldata.aa, self.data.aa)
 
 
