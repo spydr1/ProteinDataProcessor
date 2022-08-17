@@ -208,7 +208,11 @@ class FullDataLoader:
 
             # distance
             dist = tf.io.parse_tensor(eg["dist"], out_type=tf.float32)
-            nan_mask = tf.math.is_nan(dist) is False
+
+            # mistake :
+            # tf.math.is_nan(nan_test) == False
+            # tf.math.is_nan(nan_test) is False
+            nan_mask = tf.math.is_nan(dist) == [False]
 
             if contact_k > 0:
                 diagonal_mask = tf.constant(contact_mat, tf.bool)[:length, :length]
