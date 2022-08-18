@@ -233,12 +233,6 @@ class FullDataLoader:
             dist = tf.floor(dist)
             dist = tf.clip_by_value(dist - 2, 0, bins - 1)
 
-            # todo : usage of ".numpy()"
-            # distance mask (diagonal)
-            nan_mask = tf.cast(nan_mask, tf.int32)
-            # dist_mask = (
-            #     tf.constant(triangle_mat, tf.int32)[:length, :length] * nan_mask
-            # )
             # zero padding to <cls> and <eos>
             dist_mask = tf.pad(dist_mask, [[1, 1], [1, 1]])
 
