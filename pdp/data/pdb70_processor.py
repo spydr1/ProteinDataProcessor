@@ -91,6 +91,9 @@ class PDB70_Processor(AbstractProcessor):
 
         return protein_data
 
+    def get_error_log(self) -> dict:
+        return self._error_list
+
 
 def split_pdb_name(pdb_name: str):
     """Get only pdb name without chain"""

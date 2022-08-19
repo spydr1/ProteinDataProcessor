@@ -58,6 +58,10 @@ def write_instance_to_example_files(
         writer.close()
     logging.info("Wrote %d total instances", total_written)
 
+    with open(get_expand_path("~/.cache/tfdata/pdb_error.log"), mode="w") as fileobj:
+        for k, v in processor.get_error_log().items():
+            fileobj.write(f"{k}, {v} \n")
+
 
 if __name__ == "__main__":
     pdb_list = parsing_pdb70(PDB70_PATH)  # todo : flags?
