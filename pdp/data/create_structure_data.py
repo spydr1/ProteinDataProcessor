@@ -67,8 +67,8 @@ if __name__ == "__main__":
     pdb_list = parsing_pdb70(PDB70_PATH)  # todo : flags?
     exist_pdb_list, absent_pdb_list = get_exist_pdb(pdb_list)
 
-    pdb70_processor = PDB70_Processor(pdb70_list=exist_pdb_list[:50])
-    num_of_output = 1  # todo : flags?
+    pdb70_processor = PDB70_Processor(pdb70_list=exist_pdb_list)
+    num_of_output = 50  # todo : flags?
     output_files = [
         get_expand_path(f"~/.cache/tfdata/pdb/structure_data_{i}.tfrecord")
         for i in range(num_of_output)
