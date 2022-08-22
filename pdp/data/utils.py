@@ -3,7 +3,7 @@ import tensorflow as tf
 
 def _bytes_feature(value):
     """Returns a bytes_list from a string / byte."""
-    if isinstance(value, type(tf.constant(0))):
+    if isinstance(value, tf.Tensor):
         value = value.numpy()  # BytesList won't unpack a string from an EagerTensor.
     return tf.train.Feature(bytes_list=tf.train.BytesList(value=value))
 

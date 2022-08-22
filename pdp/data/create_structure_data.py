@@ -2,7 +2,7 @@ import logging
 import os
 
 import tensorflow as tf
-
+import gc
 from pdp.data.pdb70_processor import (
     parsing_pdb70,
     PDB70_PATH,
@@ -34,32 +34,33 @@ def write_instance_to_example_files(
         )
 
     writer_index = 0
-    total_written = 0
+    count = 0
 
-    data_iterator = iter(processor)
-
-    for (inst_index, afdata) in enumerate(data_iterator):
+    error_dict = dict()
+    while True:
         try:
+            afdata = next(processor)
             example = afdata.get_example()
-            print(inst_index, end="\r")
+            writers[writer_index].write(example.SerializeToString())
+            writer_index = (writer_index + 1) % len(writers)
+            count += 1
+            print(f"number of data : {count}")
+        except StopIteration:
+            break
         except BaseException as e:
-            print(e)
-            print(afdata.domain_name, inst_index)
+            name, *args = e.args
+            error_dict.update({name: args})
 
-        writers[writer_index].write(example.SerializeToString())
-        writer_index = (writer_index + 1) % len(writers)
-        total_written += 1
-
-        if inst_index < 20:
+        if count < 20:
             logging.info("*** Example ***")
             logging.info(f"name : {afdata.domain_name}, Seq : {afdata.sequence[:10]}")
 
     for writer in writers:
         writer.close()
-    logging.info("Wrote %d total instances", total_written)
+    logging.info("Wrote %d total instances", count)
 
     with open(get_expand_path("~/.cache/tfdata/pdb_error.log"), mode="w") as fileobj:
-        for k, v in processor.get_error_log().items():
+        for k, v in error_dict.items():
             fileobj.write(f"{k}, {v} \n")
 
 
