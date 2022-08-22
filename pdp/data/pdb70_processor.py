@@ -46,7 +46,6 @@ class PDB70_Processor(AbstractProcessor):
 
         self._index = 0
         self._pdb_name_list = iter(exist_pdb_list)
-        self._error_list = dict()
 
     def __iter__(self) -> afdata.AFData:
         return self
@@ -69,30 +68,19 @@ class PDB70_Processor(AbstractProcessor):
         only_name, chain = split_pdb_name(pdb_name)
         file_path = get_pdb_path(only_name)
 
-        # if pdb is not exist, skip
-        if os.path.exists(file_path) is False:
-            msg = f"{file_path} is not exist"
-            self._error_list[pdb_name] = msg
-            logging.info(msg)
-            return self.__next__()
-
         file_obj = self._file_open(file_path)
-        with file_obj:
-            pdb_str = file_obj.read()
+        pdb_str = file_obj.read()
+        # Only support single model in "from_pdb_string" function
+        try:
+            protein_data = afdata.from_pdb_string(
+                pdb_str, chain
+            )  # todo : set the rule for choosing chain 1. all chain 2. preset specific chain
+        except ValueError as e:
+            origin_msg = "".join(e.args)
+            raise Exception(pdb_name, origin_msg) from e
 
-            # Only support single model in "from_pdb_string" function
-            try:
-                protein_data = afdata.from_pdb_string(
-                    pdb_str, chain
-                )  # todo : set the rule for choosing chain 1. all chain 2. preset specific chain
-            except BaseException as e:
-                self._error_list[pdb_name] = e
-                return self.__next__()
-
+        file_obj.close()
         return protein_data
-
-    def get_error_log(self) -> dict:
-        return self._error_list
 
 
 def split_pdb_name(pdb_name: str):

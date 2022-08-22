@@ -60,6 +60,18 @@ class AFDataConfig(cfg.DataConfig):
     max_sequence_length: int = 1024
     bins: int = 16
     patch_size: int = 128
+    vocab_size: int = len(aa_idx_vocab)
+
+    epochs: int = 100
+    step: int = 10000
+    learning_rate: float = 1e-4
+    end_learning_rate: float = 1e-6
+    weight_decay_rate: float = 1e-5
+
+    hidden_size: int = 768
+    num_layers: int = 12
+    num_attention_heads: int = 12
+    num_token_predictions: int = 128
     # drop_remainder
     # shuffle_buffer_size
     # deterministic
