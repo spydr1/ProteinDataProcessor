@@ -76,6 +76,7 @@ class AFDataConfig(cfg.DataConfig):
     # shuffle_buffer_size
     # deterministic
     # seed
+    contact_k : int = 1
 
 
 # example : https://github.com/tensorflow/models/blob/master/official/nlp/data/pretrain_dataloader.py#L48
@@ -98,7 +99,7 @@ class AFDataLoader(data_loader.DataLoader):
         self._train_features = params.train_features
         self._features_metadata = _make_features_metadata(self._train_features)
         self._bins = params.bins
-        self._contact_k = 1
+        self._contact_k = params.contact_k
         contact_mat = np.triu(
             np.ones([params.max_sequence_length, params.max_sequence_length]),
             k=self._contact_k,
