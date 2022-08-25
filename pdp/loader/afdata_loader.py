@@ -44,7 +44,7 @@ from pdp.data.paths import get_expand_path
 class AFDataConfig(cfg.DataConfig):
     # Add fields here.
     input_path: str = get_expand_path("~/.cache/tfdata/pdb/*.tfrecord")
-    global_batch_size: int = 1
+    global_batch_size: int = 16
     num_res: int = 256
     train_features: List[str] = dataclasses.field(
         default_factory=lambda: [
@@ -57,21 +57,23 @@ class AFDataConfig(cfg.DataConfig):
     )
     compression_type: str = "GZIP"
     is_training: bool = True
-    max_sequence_length: int = 1024
     bins: int = 16
-    patch_size: int = 128
+    patch_size: int = 64
     vocab_size: int = len(aa_idx_vocab)
 
     epochs: int = 100
-    step: int = 10000
+    step: int = 1000
     learning_rate: float = 1e-4
     end_learning_rate: float = 1e-6
     weight_decay_rate: float = 1e-5
 
+    max_sequence_length: int = 1024
     hidden_size: int = 768
     num_layers: int = 12
     num_attention_heads: int = 12
     num_token_predictions: int = 128
+    distance_hidden_size: int = 64
+
     # drop_remainder
     # shuffle_buffer_size
     # deterministic
@@ -138,6 +140,7 @@ class AFDataLoader(data_loader.DataLoader):
         # seq_string = parsed["sequence"]
 
         seq = parsed["old_aatype"]
+        # todo : it is also matched another sequential residue [MACCCCXXXX] -> case 1. "CCC" case2. "XXX"
         idx1 = tnp.where(seq[:-1] == seq[1:])
         idx2 = tnp.where(seq[:-2] == seq[2:])
 
@@ -208,10 +211,12 @@ class AFDataLoader(data_loader.DataLoader):
             "input_seq_mask": tf.cast(seq_mask, tf.int32),
             "input_ss8_target": tf.cast(ss8, tf.int32),
             "input_ss_weight": tf.cast(ss_weight, tf.int32),
-            "input_dist_target": tf.cast(
+            "input_dist_target": tf.cast(dist, tf.int32),
+            "input_dist_mask": tf.cast(dist_mask, tf.int32),
+            "input_patch_dist_target": tf.cast(
                 dist[i : i + self._patch_size, j : j + self._patch_size], tf.int32
             ),
-            "input_dist_mask": tf.cast(
+            "input_patch_dist_mask": tf.cast(
                 dist_mask[i : i + self._patch_size, j : j + self._patch_size], tf.int32
             ),
             "input_ij": tf.cast(ij, tf.int32),
@@ -229,10 +234,12 @@ class AFDataLoader(data_loader.DataLoader):
             "input_seq_mask": [self._max_sequence_length],
             "input_ss8_target": [self._max_sequence_length],
             "input_ss_weight": [self._max_sequence_length],
-            "input_dist_target": [self._patch_size, self._patch_size],
-            "input_dist_mask": [self._patch_size, self._patch_size],
+            "input_dist_target": [self._max_sequence_length, self._max_sequence_length],
+            "input_dist_mask": [self._max_sequence_length, self._max_sequence_length],
             "input_ij": [2],
             "input_length": [1],
+            "input_patch_dist_target": [self._patch_size, self._patch_size],
+            "input_patch_dist_mask": [self._patch_size, self._patch_size],
         }
         zero = tf.constant(0, dtype=tf.int32)
         padded_value = {
@@ -245,6 +252,8 @@ class AFDataLoader(data_loader.DataLoader):
             "input_dist_mask": zero,
             "input_ij": zero,
             "input_length": zero,
+            "input_patch_dist_target": zero,
+            "input_patch_dist_mask": zero,
         }
 
         dataset = dataset.padded_batch(

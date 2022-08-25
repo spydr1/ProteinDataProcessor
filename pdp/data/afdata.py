@@ -204,7 +204,7 @@ def from_pdb_string(pdb_str: str, chain_id: Optional[str] = None) -> AFData:
                     f"index {res.id[1]}. These are not supported."
                 )
             res_shortname = residue_constants.restype_3to1.get(res.resname, "X")
-            # todo : vocabulary
+            # todo : vocabulary is different from ours.
             restype_idx = residue_constants.restype_order.get(
                 res_shortname, residue_constants.restype_num
             )

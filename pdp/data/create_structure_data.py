@@ -63,6 +63,8 @@ def write_instance_to_example_files(
         for k, v in error_dict.items():
             fileobj.write(f"{k}, {v} \n")
 
+    # todo : write final data list
+
 
 if __name__ == "__main__":
     pdb_list = parsing_pdb70(PDB70_PATH)  # todo : flags?
