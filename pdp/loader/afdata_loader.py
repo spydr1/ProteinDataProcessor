@@ -72,8 +72,7 @@ class AFDataConfig(cfg.DataConfig):
     num_layers: int = 12
     num_attention_heads: int = 12
     num_token_predictions: int = 128
-    distance_hidden_size: int = 64
-
+    distance_hidden_size: int = 1024
     # drop_remainder
     # shuffle_buffer_size
     # deterministic
