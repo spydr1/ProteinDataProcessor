@@ -86,7 +86,7 @@ class FullDataLoader:
         is_training: bool = False,
         max_sequence_length: int = 1024,
         buffer_size: int = 200,
-        batch_size: int = 8,
+        global_batch_size: int = 8,
         bins=16,
         triu_k=6,
         contact_k=4,
@@ -107,7 +107,7 @@ class FullDataLoader:
                 in false, no repeat and shuffle.
             max_sequence_length :
             buffer_size :
-            batch_size :
+            global_batch_size :
             bins :
 
         Return :
@@ -264,19 +264,18 @@ class FullDataLoader:
                 "input_seq": tf.cast(seq, tf.int32),
                 "input_seq_mask": tf.cast(seq_mask, tf.int32),
                 "input_ss8_target": tf.cast(ss8, tf.int32),
-                "input_ss_weight": tf.cast(
-                    ss_weight, tf.int32
-                ),  # ss_weight can apply to contact_weight
-                "input_dist_target": tf.cast(
+                "input_ss_weight": tf.cast(ss_weight, tf.int32),
+                "input_dist_target": tf.cast(dist, tf.int32),
+                "input_dist_mask": tf.cast(dist_mask, tf.int32),
+                "input_patch_dist_target": tf.cast(
                     dist[i : i + patch_size, j : j + patch_size], tf.int32
                 ),
-                "input_dist_mask": tf.cast(
-                    dist_mask[i : i + patch_size, j : j + patch_size], tf.int32
+                "input_patch_dist_mask": tf.cast(
+                    dist_mask[i : i + patch_size, j : j + patch_size],
+                    tf.int32,
                 ),
                 "input_ij": tf.cast(ij, tf.int32),
-                "input_length": length
-                # "input_contact" : tf.cast(contact, tf.int32),
-                # "input_contact_pair" : tf.cast(contact_pair, tf.int32),
+                "input_length": length,
             }
 
         padded_shapes = {
@@ -285,10 +284,12 @@ class FullDataLoader:
             "input_seq_mask": [max_sequence_length],
             "input_ss8_target": [max_sequence_length],
             "input_ss_weight": [max_sequence_length],
-            "input_dist_target": [patch_size, patch_size],
-            "input_dist_mask": [patch_size, patch_size],
+            "input_dist_target": [max_sequence_length, max_sequence_length],
+            "input_dist_mask": [max_sequence_length, max_sequence_length],
             "input_ij": [2],
             "input_length": [],
+            "input_patch_dist_target": [patch_size, patch_size],
+            "input_patch_dist_mask": [patch_size, patch_size],
         }
         zero = tf.constant(0, dtype=tf.int32)
         padded_value = {
@@ -301,6 +302,8 @@ class FullDataLoader:
             "input_dist_mask": zero,
             "input_ij": zero,
             "input_length": zero,
+            "input_patch_dist_target": zero,
+            "input_patch_dist_mask": zero,
         }
 
         dataset = dataset.map(
@@ -308,7 +311,7 @@ class FullDataLoader:
         )
 
         dataset = dataset.padded_batch(
-            batch_size, padded_shapes=padded_shapes, padding_values=padded_value
+            global_batch_size, padded_shapes=padded_shapes, padding_values=padded_value
         )
 
         dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)

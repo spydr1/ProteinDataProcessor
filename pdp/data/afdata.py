@@ -178,10 +178,10 @@ def from_pdb_string(pdb_str: str, chain_id: Optional[str] = None) -> AFData:
     parser = PDBParser(QUIET=True)
     structure = parser.get_structure("none", pdb_fh)
     models = list(structure.get_models())
-    if len(models) != 1:
-        raise ValueError(
-            f"Only single model PDBs are supported. Found {len(models)} models."
-        )
+    # if len(models) != 1:
+    #     raise ValueError(
+    #         f"Only single model PDBs are supported. Found {len(models)} models."
+    #     )
     model = models[0]
 
     atom_positions = []

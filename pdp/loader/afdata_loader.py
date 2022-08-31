@@ -77,7 +77,8 @@ class AFDataConfig(cfg.DataConfig):
     # shuffle_buffer_size
     # deterministic
     # seed
-    contact_k : int = 1
+    contact_k: int = 1
+    weight_path: str = None
 
 
 # example : https://github.com/tensorflow/models/blob/master/official/nlp/data/pretrain_dataloader.py#L48
