@@ -10,10 +10,14 @@ from alphafold.model.tf import protein_features as pf
 from alphafold.common import residue_constants
 from alphafold.model import all_atom
 import numpy as np
+import jax.numpy as jnp
+
 import tensorflow as tf
 
 from pdp.data.utils import _bytes_feature, _int64_feature, _float_feature
 from pdp.data.helper import AbstractDataclass
+from pdp.utils import vocab
+
 import copy
 
 SHRUNK_FEATURE = [
@@ -27,6 +31,10 @@ SHRUNK_FEATURE = [
 ]
 FEATURES = {_feature: pf.FEATURES[_feature] for _feature in SHRUNK_FEATURE}
 FEATURES.update({"old_aatype": (tf.int64, [pf.NUM_RES])})
+FEATURES.update({"torsion_angles_sin_cos": (tf.float32, [pf.NUM_RES, 7, 2])})
+FEATURES.update({"alt_torsion_angles_sin_cos": (tf.float32, [pf.NUM_RES, 7, 2])})
+FEATURES.update({"torsion_angles_mask": (tf.float32, [pf.NUM_RES, 7])})
+
 pf.FEATURES = FEATURES
 FEATURE_TYPES = {k: v[0] for k, v in FEATURES.items()}
 FEATURE_SIZES = {k: v[1] for k, v in FEATURES.items()}
@@ -46,7 +54,7 @@ def _to_feature(array: np.array):
     if array.dtype == np.int64:
         tensor = _int64_feature(array)
 
-    elif array.dtype == np.float64:
+    elif array.dtype == np.float64 or array.dtype == np.float32:
         tensor = _float_feature(array)
 
     # In numpy, "U" and "S" type are string.
@@ -54,12 +62,13 @@ def _to_feature(array: np.array):
         tensor = _bytes_feature([array[0].encode()])
 
     else:
-        raise Exception(f"Input Array Data type : {array.dtype}. It is not supported.")
+        dtype = array.dtype
+        raise Exception(f"Input Array Data type : {dtype}. It is not supported.")
 
     return tensor
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass(frozen=False)
 class AFData(AbstractDataclass):
     """Protein structure representation."""
 
@@ -103,25 +112,41 @@ class AFData(AbstractDataclass):
 
     old_aatype: np.ndarray  # [num_res]
 
+    # torsion_angles_sin_cos: np.ndarray  # [num_res, 7, 2]
+    # alt_torsion_angles_sin_cos: np.ndarray  # [num_res, 7, 2]
+    # torsion_angles_mask: np.ndarray  # [num_res, 7]
+
     def __post_init__(self):
         if len(np.unique(self.chain_index)) > PDB_MAX_CHAINS:
             raise ValueError(
                 f"Cannot build an instance with more than {PDB_MAX_CHAINS} chains "
                 "because these cannot be written to PDB format."
             )
+        torsions = self.atom37_to_torsion_angles()
+        self.torsion_angles_sin_cos = np.array(torsions["torsion_angles_sin_cos"])
+        self.alt_torsion_angles_sin_cos = np.array(
+            torsions["alt_torsion_angles_sin_cos"]
+        )
+        self.torsion_angles_mask = np.array(torsions["torsion_angles_mask"])
+        # del torsions
 
     # todo : is this functions need?,
     # If transforming is essentially equal but just different value,
     # i think that it is comfortable that include this function into class.
     def atom37_to_torsion_angles(self):
         torsions = all_atom.atom37_to_torsion_angles(
-            self.aatype[None, :], self.atom_positions[None, :], self.atom_mask[None, :]
+            self.aatype[None, :],
+            self.all_atom_positions[None, :],
+            self.all_atom_mask[None, :],
         )
+
         return torsions
 
     def atom37_to_frames(self):
         frames = all_atom.atom37_to_frames(
-            self.aatype[None, :], self.atom_positions[None, :], self.atom_mask[None, :]
+            self.aatype[None, :],
+            self.all_atom_positions[None, :],
+            self.all_atom_mask[None, :],
         )
         return frames
 
@@ -141,9 +166,6 @@ class AFData(AbstractDataclass):
 def np_one_hot(indices, depth):
     one_hot = np.eye(depth)[indices]
     return one_hot
-
-
-from pdp.utils import vocab
 
 
 def from_pdb_string(pdb_str: str, chain_id: Optional[str] = None) -> AFData:
@@ -254,10 +276,11 @@ def from_pdb_string(pdb_str: str, chain_id: Optional[str] = None) -> AFData:
         resolution = np.array(
             [parser.get_header()["resolution"]] * len(unique_chain_ids)
         )
+
     return AFData(
         all_atom_positions=np.array(atom_positions),
         all_atom_mask=np.array(atom_mask, dtype=np.int),
-        aatype=np.array(aatype, dtype=np.float),
+        aatype=np.array(aatype, dtype=np.int),
         residue_index=np.array(residue_index),
         chain_index=chain_index,
         b_factors=np.array(b_factors),

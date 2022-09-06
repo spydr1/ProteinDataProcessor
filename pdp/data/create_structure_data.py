@@ -66,10 +66,13 @@ def write_instance_to_example_files(
     # todo : write final data list
 
 
+from time import time
+
 if __name__ == "__main__":
     pdb_list = parsing_pdb70(PDB70_PATH)  # todo : flags?
     exist_pdb_list, absent_pdb_list = get_exist_pdb(pdb_list)
 
+    start_t = time()
     pdb70_processor = PDB70_Processor(pdb70_list=exist_pdb_list)
     num_of_output = 50  # todo : flags?
     output_files = [
@@ -78,6 +81,8 @@ if __name__ == "__main__":
     ]
 
     write_instance_to_example_files(pdb70_processor, output_files)
+
+    print(time() - start_t)
 #
 #
 # data_iterator = iter(pdb70_processor)
