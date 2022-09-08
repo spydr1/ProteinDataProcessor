@@ -1,7 +1,7 @@
 import os
 import logging
 import gzip
-from typing import List
+from ordered_set import OrderedSet
 from enum import Enum
 
 import tensorflow as tf
@@ -26,7 +26,7 @@ def parsing_pdb70(pdb70_clu_path=PDB70_PATH):
             rep, pdb = line.split("\t")
             representative.append(rep)
 
-    return list(set(representative))
+    return list(OrderedSet(representative))
 
 
 # multiple files -> read by iterator.

@@ -1,7 +1,7 @@
 import io
 import dataclasses
 import logging
-from typing import Any, Mapping, Optional
+from typing import Any, Mapping, Optional, Dict
 
 # from alphafold.common.protein import Protein as alphafold_protein
 from Bio.PDB import PDBParser
@@ -9,8 +9,10 @@ from alphafold.common.protein import PDB_MAX_CHAINS
 from alphafold.model.tf import protein_features as pf
 from alphafold.common import residue_constants
 from alphafold.model import all_atom
+
+
 import numpy as np
-import jax.numpy as jnp
+import numpy as jnp  # in jax code, it's arising memory leak.
 
 import tensorflow as tf
 
@@ -18,7 +20,6 @@ from pdp.data.utils import _bytes_feature, _int64_feature, _float_feature
 from pdp.data.helper import AbstractDataclass
 from pdp.utils import vocab
 
-import copy
 
 SHRUNK_FEATURE = [
     "aatype",
@@ -122,13 +123,17 @@ class AFData(AbstractDataclass):
                 f"Cannot build an instance with more than {PDB_MAX_CHAINS} chains "
                 "because these cannot be written to PDB format."
             )
+
         torsions = self.atom37_to_torsion_angles()
-        self.torsion_angles_sin_cos = np.array(torsions["torsion_angles_sin_cos"])
+
+        self.torsion_angles_sin_cos = np.array(
+            torsions["torsion_angles_sin_cos"]
+        ).squeeze()
         self.alt_torsion_angles_sin_cos = np.array(
             torsions["alt_torsion_angles_sin_cos"]
-        )
-        self.torsion_angles_mask = np.array(torsions["torsion_angles_mask"])
-        # del torsions
+        ).squeeze()
+        self.torsion_angles_mask = np.array(torsions["torsion_angles_mask"]).squeeze()
+        del torsions
 
     # todo : is this functions need?,
     # If transforming is essentially equal but just different value,

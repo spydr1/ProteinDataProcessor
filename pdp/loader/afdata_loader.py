@@ -53,6 +53,7 @@ class AFDataConfig(cfg.DataConfig):
             "all_atom_mask",
             "resolution",
             "old_aatype",
+            "torsion_angles_sin_cos",
         ]
     )
     compression_type: str = "GZIP"
@@ -79,6 +80,16 @@ class AFDataConfig(cfg.DataConfig):
     # seed
     contact_k: int = 1
     weight_path: str = None
+    test_mode: bool = False
+
+    def init_test(self):
+        print("You are using test mode")
+        if self.test_mode:
+            self.num_layers = 2
+            self.hidden_size = 256
+            self.distance_hidden_size = 64
+            self.num_attention_heads = 4
+            self.weight_path = None
 
 
 # example : https://github.com/tensorflow/models/blob/master/official/nlp/data/pretrain_dataloader.py#L48
@@ -206,6 +217,13 @@ class AFDataLoader(data_loader.DataLoader):
         )
         i, j = ij[0], ij[1]
 
+        # omega, phi, psi ~~
+        torsion_angles_sin_cos = parsed["torsion_angles_sin_cos"][:, :3]
+        # padding zero to token
+        torsion_angles_sin_cos = tf.pad(
+            torsion_angles_sin_cos, [[1, 1], [0, 0], [0, 0]]
+        )
+
         return {
             "input_fasta": fasta,
             "input_seq": tf.cast(seq, tf.int32),
@@ -222,6 +240,7 @@ class AFDataLoader(data_loader.DataLoader):
             ),
             "input_ij": tf.cast(ij, tf.int32),
             "input_length": tf.reshape(length, [1]),
+            "torsion_angles_sin_cos": torsion_angles_sin_cos,
         }
 
     def _batch_fn(
@@ -241,6 +260,7 @@ class AFDataLoader(data_loader.DataLoader):
             "input_length": [1],
             "input_patch_dist_target": [self._patch_size, self._patch_size],
             "input_patch_dist_mask": [self._patch_size, self._patch_size],
+            "torsion_angles_sin_cos": [self._max_sequence_length, 3, 2],
         }
         zero = tf.constant(0, dtype=tf.int32)
         padded_value = {
@@ -255,6 +275,7 @@ class AFDataLoader(data_loader.DataLoader):
             "input_length": zero,
             "input_patch_dist_target": zero,
             "input_patch_dist_mask": zero,
+            "torsion_angles_sin_cos": 0.0,
         }
 
         dataset = dataset.padded_batch(

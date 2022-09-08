@@ -2,7 +2,6 @@ import logging
 import os
 
 import tensorflow as tf
-import gc
 from pdp.data.pdb70_processor import (
     parsing_pdb70,
     PDB70_PATH,
@@ -45,11 +44,13 @@ def write_instance_to_example_files(
             writer_index = (writer_index + 1) % len(writers)
             count += 1
             print(f"number of data : {count}")
+
         except StopIteration:
             break
         except BaseException as e:
             name, *args = e.args
             error_dict.update({name: args})
+            print(e)
 
         if count < 20:
             logging.info("*** Example ***")
@@ -67,20 +68,46 @@ def write_instance_to_example_files(
 
 
 from time import time
+import multiprocessing as mp
+
+# import tracemalloc
+#
+# tracemalloc.start()
+
 
 if __name__ == "__main__":
     pdb_list = parsing_pdb70(PDB70_PATH)  # todo : flags?
     exist_pdb_list, absent_pdb_list = get_exist_pdb(pdb_list)
 
     start_t = time()
-    pdb70_processor = PDB70_Processor(pdb70_list=exist_pdb_list)
-    num_of_output = 50  # todo : flags?
-    output_files = [
-        get_expand_path(f"~/.cache/tfdata/pdb/structure_data_{i}.tfrecord")
+    num_cpu = 20
+    print(f"num of core {mp.cpu_count()}")
+    num_of_output = 20  # todo : flags?
+    pdb70_processor = [
+        PDB70_Processor(pdb70_list=exist_pdb_list[i::num_of_output])
         for i in range(num_of_output)
     ]
 
-    write_instance_to_example_files(pdb70_processor, output_files)
+    output_files = [
+        [get_expand_path(f"~/.cache/tfdata/pdb/structure_data_{i}.tfrecord")]
+        for i in range(num_of_output)
+    ]
+    try:
+        pool = mp.Pool(num_cpu)
+        r = pool.starmap(
+            write_instance_to_example_files,
+            zip(pdb70_processor, output_files),
+        )
+    except Exception as e:
+        print(e)
+    pool.terminate()
+
+    # snapshot = tracemalloc.take_snapshot()
+    # top_stats = snapshot.statistics("lineno")
+    #
+    # print("[ Top 10 ]")
+    # for stat in top_stats[:20]:
+    #     print(stat)
 
     print(time() - start_t)
 #
