@@ -142,6 +142,7 @@ class AFDataLoader(data_loader.DataLoader):
     def _parse(self, record: Mapping[str, tf.Tensor]):
         reshaped_features = parse_reshape_logic(record, self._features_metadata)
         transformed_feature = self._transform(reshaped_features)
+        print(transformed_feature)
         return transformed_feature
 
     #
@@ -152,9 +153,20 @@ class AFDataLoader(data_loader.DataLoader):
 
         seq = parsed["old_aatype"]
         # todo : it is also matched another sequential residue [MACCCCXXXX] -> case 1. "CCC" case2. "XXX"
+        origin_length = len(seq)
+        origin_length = tf.cast(origin_length, tf.int64)  # include unknown token
 
-        length = tf.where(seq != aa_idx_vocab["<unk>"])
-        length = tf.reduce_max(length) + 1
+        # todo : bug ? -> re-use the var name "length"
+        # length = tf.where(seq != aa_idx_vocab["<unk>"])
+        # length = tf.reduce_max(length) + 1
+        # length = tf.where(tf.size(length) == 0, origin_length, length)
+
+        unknown = tf.where(seq != aa_idx_vocab["<unk>"])
+        length = tf.reduce_max(unknown) + 1
+        length = tf.where(tf.size(unknown) == 0, origin_length, length)
+
+        # todo : need discussion.
+        # Some protein has all unknown residue.
 
         # Sometimes, Residue is longer than max sequence length. So we will cut.
         length = tf.minimum(
@@ -165,7 +177,8 @@ class AFDataLoader(data_loader.DataLoader):
         seq = tf.concat(
             [[aa_idx_vocab["<cls>"]], seq[:length], [aa_idx_vocab["<eos>"]]], axis=0
         )
-        seq_mask = tf.ones(length + 2, dtype=tf.int64)
+
+        seq_mask = tf.where(seq != aa_idx_vocab["<unk>"], 1, 0)
 
         # afdata doesn't include the secondary structure
         ss8 = tf.zeros(length + 2, dtype=tf.int64)
