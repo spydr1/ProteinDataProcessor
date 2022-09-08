@@ -129,7 +129,6 @@ class AFDataLoader(data_loader.DataLoader):
             for k, v in self._features_metadata.items()
         }
         example = tf.io.parse_single_example(record, feature_map)
-        print(example)
         # tf.Example only supports tf.int64, but the TPU only supports tf.int32.
         # So cast all int64 to int32.
         if use_TPU:
@@ -153,19 +152,9 @@ class AFDataLoader(data_loader.DataLoader):
 
         seq = parsed["old_aatype"]
         # todo : it is also matched another sequential residue [MACCCCXXXX] -> case 1. "CCC" case2. "XXX"
-        idx1 = tnp.where(seq[:-1] == seq[1:])
-        idx2 = tnp.where(seq[:-2] == seq[2:])
 
-        # cut unknown region, it is corresponding to sequence length
-        intersection = tf.sets.intersection(idx1, idx2)
-
-        length = tf.reduce_min(intersection.values)
-        length = tf.cast(length, tf.int32)
-        length = tf.where(
-            tf.size(intersection) == 0,
-            len(seq),
-            length,
-        )
+        length = tf.where(seq != aa_idx_vocab["<unk>"])
+        length = tf.reduce_max(length) + 1
 
         # Sometimes, Residue is longer than max sequence length. So we will cut.
         length = tf.minimum(
@@ -213,12 +202,12 @@ class AFDataLoader(data_loader.DataLoader):
             maxval=tf.maximum(
                 length + 2 - self._patch_size, 2
             ),  # minval <= val < maxval <- not include maxval
-            dtype=tf.dtypes.int32,
+            dtype=tf.dtypes.int64,
         )
         i, j = ij[0], ij[1]
 
         # omega, phi, psi ~~
-        torsion_angles_sin_cos = parsed["torsion_angles_sin_cos"][:, :3]
+        torsion_angles_sin_cos = parsed["torsion_angles_sin_cos"][:length, :3]
         # padding zero to token
         torsion_angles_sin_cos = tf.pad(
             torsion_angles_sin_cos, [[1, 1], [0, 0], [0, 0]]
@@ -239,7 +228,7 @@ class AFDataLoader(data_loader.DataLoader):
                 dist_mask[i : i + self._patch_size, j : j + self._patch_size], tf.int32
             ),
             "input_ij": tf.cast(ij, tf.int32),
-            "input_length": tf.reshape(length, [1]),
+            "input_length": tf.reshape(tf.cast(length, tf.int32), [1]),
             "torsion_angles_sin_cos": torsion_angles_sin_cos,
         }
 
