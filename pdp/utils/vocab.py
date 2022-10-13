@@ -28,7 +28,7 @@ _aa_vocab = [
     "V",
     "W",
     "Y",
-    "<unk>",
+    "X",
     "<pad>",
     "<cls>",
     "<eos>",
@@ -65,6 +65,7 @@ aa_dict = {
 }
 
 aa_dict_inv = {v: k for k, v in aa_dict.items()}
+aa_dict_inv["H"] = "HIS"
 
 
 # todo : 'X', '-' 확인해보기

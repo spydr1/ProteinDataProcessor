@@ -44,7 +44,7 @@ from pdp.data.paths import get_expand_path
 class AFDataConfig(cfg.DataConfig):
     # Add fields here.
     input_path: str = get_expand_path("~/.cache/tfdata/pdb/*.tfrecord")
-    global_batch_size: int = 16
+    global_batch_size: int = 4
     num_res: int = 256
     train_features: List[str] = dataclasses.field(
         default_factory=lambda: [
@@ -62,34 +62,20 @@ class AFDataConfig(cfg.DataConfig):
     patch_size: int = 64
     vocab_size: int = len(aa_idx_vocab)
 
-    epochs: int = 100
-    step: int = 1000
-    learning_rate: float = 1e-4
-    end_learning_rate: float = 1e-6
-    weight_decay_rate: float = 1e-5
-
-    max_sequence_length: int = 1024
-    hidden_size: int = 768
-    num_layers: int = 12
-    num_attention_heads: int = 12
-    num_token_predictions: int = 128
-    distance_hidden_size: int = 1024
+    max_sequence_length: int = 256
     # drop_remainder
     # shuffle_buffer_size
     # deterministic
     # seed
     contact_k: int = 1
-    weight_path: str = None
-    test_mode: bool = False
 
     def init_test(self):
         print("You are using test mode")
-        if self.test_mode:
-            self.num_layers = 2
-            self.hidden_size = 256
-            self.distance_hidden_size = 64
-            self.num_attention_heads = 4
-            self.weight_path = None
+        self.num_layers = 2
+        self.hidden_size = 64
+        self.distance_hidden_size = 64
+        self.num_attention_heads = 4
+        self.intermediate_size = self.hidden_size * 4
 
 
 # example : https://github.com/tensorflow/models/blob/master/official/nlp/data/pretrain_dataloader.py#L48
@@ -161,7 +147,7 @@ class AFDataLoader(data_loader.DataLoader):
         # length = tf.reduce_max(length) + 1
         # length = tf.where(tf.size(length) == 0, origin_length, length)
 
-        unknown = tf.where(seq != aa_idx_vocab["<unk>"])
+        unknown = tf.where(seq != aa_idx_vocab["X"])
         length = tf.reduce_max(unknown) + 1
         length = tf.where(tf.size(unknown) == 0, origin_length, length)
 
@@ -178,7 +164,7 @@ class AFDataLoader(data_loader.DataLoader):
             [[aa_idx_vocab["<cls>"]], seq[:length], [aa_idx_vocab["<eos>"]]], axis=0
         )
 
-        seq_mask = tf.where(seq != aa_idx_vocab["<unk>"], 1, 0)
+        seq_mask = tf.where(seq != aa_idx_vocab["X"], 1, 0)
 
         # afdata doesn't include the secondary structure
         ss8 = tf.zeros(length + 2, dtype=tf.int64)

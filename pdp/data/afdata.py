@@ -235,9 +235,7 @@ def from_pdb_string(pdb_str: str, chain_id: Optional[str] = None) -> AFData:
             restype_idx = residue_constants.restype_order.get(
                 res_shortname, residue_constants.restype_num
             )
-            old_seq_idx = vocab.aa_idx_vocab.get(
-                res_shortname, vocab.aa_idx_vocab["<unk>"]
-            )
+            old_seq_idx = vocab.aa_idx_vocab.get(res_shortname, vocab.aa_idx_vocab["X"])
             pos = np.zeros((residue_constants.atom_type_num, 3))
             mask = np.zeros((residue_constants.atom_type_num,))
             res_b_factors = np.zeros((residue_constants.atom_type_num,))

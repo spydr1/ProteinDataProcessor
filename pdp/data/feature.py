@@ -60,7 +60,7 @@ class AminoAcid(str):
         """
 
         index_list = []
-        unknown_token = vocab.aa_idx_vocab["<unk>"]
+        unknown_token = vocab.aa_idx_vocab["X"]
         vocabulary = vocab.aa_idx_vocab
 
         for seq in self.aa:
